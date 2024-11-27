@@ -8,11 +8,10 @@ import time
 from collections import defaultdict, deque
 from typing import Iterator, List, Tuple
 
-import dist
 import numpy as np
 import pytz
 import torch
-import torch.distributed as tdist
+from torch import distributed
 
 from utils import parse
 
@@ -226,8 +225,8 @@ class SmoothedValue:
 
     def synchronize_between_processes(self):
         t = torch.tensor([self.count, self.total], dtype=torch.float64, device="cuda")
-        tdist.barrier()
-        tdist.all_reduce(t)
+        distributed.barrier()
+        distributed.all_reduce(t)
         t = t.tolist()
         self.count = int(t[0])
         self.total = t[1]
