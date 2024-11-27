@@ -24,6 +24,8 @@ except ImportError as e:
 
 import dist
 
+from utils import misc
+
 
 class Args(Tap):
     data_path: str = "/path/to/imagenet"
@@ -331,22 +333,8 @@ def init_dist_and_get_args():
 
     if args.extra_args:
         print(
-            f"======================================================================================"
-        )
-        print(
-            f"======================================================================================\n{args.extra_args}"
-        )
-        print(
             f"=========================== WARNING: UNEXPECTED EXTRA ARGS ==========================="
         )
-        print(
-            f"======================================================================================"
-        )
-        print(
-            f"======================================================================================\n\n"
-        )
-
-    from utils import misc
 
     os.makedirs(args.local_output_dir_path, exist_ok=True)
     misc.init_distributed_mode(local_out_path=args.local_output_dir_path, timeout=30)

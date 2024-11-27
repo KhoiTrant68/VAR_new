@@ -1,14 +1,14 @@
-from typing import List, Optional, Sequence, Tuple, Union
+from typing import List, Optional, Tuple
 
 import dist
 import numpy as np
 import torch
-from torch import distributed as tdist
+from torch import distributed 
 from torch import nn as nn
 from torch.nn import functional as F
 
 __all__ = [
-    "VectorQuantizer2",
+    "VectorQuantizer",
 ]
 
 
@@ -100,7 +100,7 @@ class PhiNonShared(nn.ModuleList):
         return f"ticks={self.ticks}"
 
 
-class VectorQuantizer2(nn.Module):
+class VectorQuantizer(nn.Module):
     """
     Advanced Vector Quantization module with multi-scale support.
 
@@ -248,7 +248,7 @@ class VectorQuantizer2(nn.Module):
 
             # Distributed training sync
             if self.training and dist.initialized():
-                tdist.all_reduce(hit_V, async_op=True)
+                distributed.all_reduce(hit_V, async_op=True)
 
             # Quantization and reconstruction
             idx_Bhw = idx_N.view(B, pn, pn)
@@ -276,7 +276,7 @@ class VectorQuantizer2(nn.Module):
 
         # Compute usage statistics
         margin = (
-            tdist.get_world_size()
+            distributed.get_world_size()
             * (f_BChw.numel() / f_BChw.shape[1])
             / self.vocab_size
             * 0.08
