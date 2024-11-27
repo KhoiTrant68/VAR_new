@@ -19,13 +19,18 @@ from utils import parse
 # Partial function to call system commands
 os_system = functools.partial(subprocess.call, shell=True)
 
+
 def echo(info):
     os_system(
         f'echo "[$(date "+%m-%d-%H:%M:%S")] ({os.path.basename(sys._getframe().f_back.f_code.co_filename)}, line{sys._getframe().f_back.f_lineno})=> {info}"'
     )
 
+
 def os_system_get_stdout(cmd):
-    return subprocess.run(cmd, shell=True, stdout=subprocess.PIPE).stdout.decode("utf-8")
+    return subprocess.run(cmd, shell=True, stdout=subprocess.PIPE).stdout.decode(
+        "utf-8"
+    )
+
 
 def os_system_get_stdout_stderr(cmd):
     cnt = 0
@@ -44,8 +49,10 @@ def os_system_get_stdout_stderr(cmd):
         else:
             return sp.stdout.decode("utf-8"), sp.stderr.decode("utf-8")
 
+
 def time_str(fmt="[%m-%d %H:%M:%S]"):
     return datetime.datetime.now(tz=pytz.timezone("Asia/Shanghai")).strftime(fmt)
+
 
 def init_distributed_mode(local_out_path, only_sync_master=False, timeout=30):
     try:
@@ -58,8 +65,13 @@ def init_distributed_mode(local_out_path, only_sync_master=False, timeout=30):
     if local_out_path:
         os.makedirs(local_out_path, exist_ok=True)
     _change_builtin_print(dist.is_local_master())
-    if (dist.is_master() if only_sync_master else dist.is_local_master()) and local_out_path:
-        sys.stdout, sys.stderr = SyncPrint(local_out_path, sync_stdout=True), SyncPrint(local_out_path, sync_stdout=False)
+    if (
+        dist.is_master() if only_sync_master else dist.is_local_master()
+    ) and local_out_path:
+        sys.stdout, sys.stderr = SyncPrint(local_out_path, sync_stdout=True), SyncPrint(
+            local_out_path, sync_stdout=False
+        )
+
 
 def _change_builtin_print(is_master):
     import builtins as __builtin__
@@ -88,15 +100,20 @@ def _change_builtin_print(is_master):
 
     __builtin__.print = prt
 
+
 class SyncPrint:
     def __init__(self, local_output_dir, sync_stdout=True):
         self.sync_stdout = sync_stdout
         self.terminal_stream = sys.stdout if sync_stdout else sys.stderr
-        fname = os.path.join(local_output_dir, "stdout.txt" if sync_stdout else "stderr.txt")
+        fname = os.path.join(
+            local_output_dir, "stdout.txt" if sync_stdout else "stderr.txt"
+        )
         existing = os.path.exists(fname)
         self.file_stream = open(fname, "a")
         if existing:
-            self.file_stream.write("\n" * 7 + "=" * 55 + f"   RESTART {time_str()}   " + "=" * 55 + "\n")
+            self.file_stream.write(
+                "\n" * 7 + "=" * 55 + f"   RESTART {time_str()}   " + "=" * 55 + "\n"
+            )
         self.file_stream.flush()
         self.enabled = True
 
@@ -124,6 +141,7 @@ class SyncPrint:
     def __del__(self):
         self.close()
 
+
 class DistLogger:
     def __init__(self, lg, verbose):
         self._lg, self._verbose = lg, verbose
@@ -135,9 +153,11 @@ class DistLogger:
     def __getattr__(self, attr: str):
         return getattr(self._lg, attr) if self._verbose else DistLogger.do_nothing
 
+
 class TensorboardLogger:
     def __init__(self, log_dir, filename_suffix):
         from torch.utils.tensorboard import SummaryWriter
+
         self.writer = SummaryWriter(log_dir=log_dir, filename_suffix=filename_suffix)
         self.step = 0
 
@@ -188,6 +208,7 @@ class TensorboardLogger:
 
     def close(self):
         self.writer.close()
+
 
 class SmoothedValue:
     def __init__(self, window_size=30, fmt=None):
@@ -248,6 +269,7 @@ class SmoothedValue:
             value=self.value,
         )
 
+
 class MetricLogger:
     def __init__(self, delimiter="  "):
         self.meters = defaultdict(SmoothedValue)
@@ -269,7 +291,9 @@ class MetricLogger:
             return self.meters[attr]
         if attr in self.__dict__:
             return self.__dict__[attr]
-        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{attr}'")
+        raise AttributeError(
+            f"'{type(self).__name__}' object has no attribute '{attr}'"
+        )
 
     def __str__(self):
         loss_str = []
@@ -286,7 +310,9 @@ class MetricLogger:
         self.meters[name] = meter
 
     def log_every(self, start_it, max_iters, itrt, print_freq, header=None):
-        self.log_iters = set(np.linspace(0, max_iters - 1, print_freq, dtype=int).tolist())
+        self.log_iters = set(
+            np.linspace(0, max_iters - 1, print_freq, dtype=int).tolist()
+        )
         self.log_iters.add(start_it)
         if not header:
             header = ""
@@ -305,7 +331,11 @@ class MetricLogger:
         ]
         log_msg = self.delimiter.join(log_msg)
 
-        if isinstance(itrt, Iterator) and not hasattr(itrt, "preload") and not hasattr(itrt, "set_epoch"):
+        if (
+            isinstance(itrt, Iterator)
+            and not hasattr(itrt, "preload")
+            and not hasattr(itrt, "set_epoch")
+        ):
             for i in range(start_it, max_iters):
                 obj = next(itrt)
                 self.data_time.update(time.time() - self.iter_end_t)
@@ -356,10 +386,16 @@ class MetricLogger:
             flush=True,
         )
 
-def glob_with_latest_modified_first(pattern, recursive=False):
-    return sorted(glob.glob(pattern, recursive=recursive), key=os.path.getmtime, reverse=True)
 
-def auto_resume(args: parse.Args, pattern="ckpt*.pth") -> Tuple[List[str], int, int, dict, dict]:
+def glob_with_latest_modified_first(pattern, recursive=False):
+    return sorted(
+        glob.glob(pattern, recursive=recursive), key=os.path.getmtime, reverse=True
+    )
+
+
+def auto_resume(
+    args: parse.Args, pattern="ckpt*.pth"
+) -> Tuple[List[str], int, int, dict, dict]:
     info = []
     file = os.path.join(args.local_output_dir_path, pattern)
     all_ckpt = glob_with_latest_modified_first(file)
@@ -374,15 +410,21 @@ def auto_resume(args: parse.Args, pattern="ckpt*.pth") -> Tuple[List[str], int, 
         info.append(f"[auto_resume success] resume from ep{ep}, it{it}")
         return info, ep, it, ckpt["trainer"], ckpt["args"]
 
+
 def create_npz_from_sample_folder(sample_folder: str):
     import glob
+
     import numpy as np
     from PIL import Image
     from tqdm import tqdm
 
     samples = []
-    pngs = glob.glob(os.path.join(sample_folder, "*.png")) + glob.glob(os.path.join(sample_folder, "*.PNG"))
-    assert len(pngs) == 50_000, f"{len(pngs)} png files found in {sample_folder}, but expected 50,000"
+    pngs = glob.glob(os.path.join(sample_folder, "*.png")) + glob.glob(
+        os.path.join(sample_folder, "*.PNG")
+    )
+    assert (
+        len(pngs) == 50_000
+    ), f"{len(pngs)} png files found in {sample_folder}, but expected 50,000"
     for png in tqdm(pngs, desc="Building .npz file from samples (png only)"):
         with Image.open(png) as sample_pil:
             sample_np = np.asarray(sample_pil).astype(np.uint8)

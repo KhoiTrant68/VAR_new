@@ -3,7 +3,7 @@ from typing import List, Optional, Tuple
 import dist
 import numpy as np
 import torch
-from torch import distributed 
+from torch import distributed
 from torch import nn as nn
 from torch.nn import functional as F
 

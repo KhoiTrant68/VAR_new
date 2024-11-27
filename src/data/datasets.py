@@ -1,6 +1,7 @@
 import os
+
 from PIL import Image
-from torchvision.datasets.folder import DatasetFolder, IMG_EXTENSIONS
+from torchvision.datasets.folder import IMG_EXTENSIONS, DatasetFolder
 from torchvision.transforms import InterpolationMode, transforms
 
 
@@ -11,11 +12,13 @@ def normalize_01_into_pm1(x):
 
 def pil_loader(path: str) -> Image.Image:
     """Load an image and convert it to RGB."""
-    with open(path, 'rb') as f:
-        return Image.open(f).convert('RGB')
+    with open(path, "rb") as f:
+        return Image.open(f).convert("RGB")
 
 
-def build_dataset(data_path: str, final_reso: int, hflip: bool = False, mid_reso_scale: float = 1.125):
+def build_dataset(
+    data_path: str, final_reso: int, hflip: bool = False, mid_reso_scale: float = 1.125
+):
     """
     Build training and validation datasets with specified transformations.
 
@@ -51,13 +54,25 @@ def build_dataset(data_path: str, final_reso: int, hflip: bool = False, mid_reso
     val_aug = transforms.Compose(val_transforms)
 
     # Create datasets
-    train_set = DatasetFolder(root=os.path.join(data_path, 'train'), loader=pil_loader, extensions=IMG_EXTENSIONS, transform=train_aug)
-    val_set = DatasetFolder(root=os.path.join(data_path, 'val'), loader=pil_loader, extensions=IMG_EXTENSIONS, transform=val_aug)
+    train_set = DatasetFolder(
+        root=os.path.join(data_path, "train"),
+        loader=pil_loader,
+        extensions=IMG_EXTENSIONS,
+        transform=train_aug,
+    )
+    val_set = DatasetFolder(
+        root=os.path.join(data_path, "val"),
+        loader=pil_loader,
+        extensions=IMG_EXTENSIONS,
+        transform=val_aug,
+    )
 
     num_classes = len(train_set.classes)
 
     # Log dataset info and transformations
-    print(f"[Dataset] train size: {len(train_set)}, val size: {len(val_set)}, num_classes: {num_classes}")
+    print(
+        f"[Dataset] train size: {len(train_set)}, val size: {len(val_set)}, num_classes: {num_classes}"
+    )
     log_transforms(train_aug, "Training")
     log_transforms(val_aug, "Validation")
 
@@ -67,7 +82,7 @@ def build_dataset(data_path: str, final_reso: int, hflip: bool = False, mid_reso
 def log_transforms(transform: transforms.Compose, label: str):
     """Log the transformations applied to a dataset."""
     print(f"\n[{label} Transformations]")
-    if hasattr(transform, 'transforms'):
+    if hasattr(transform, "transforms"):
         for t in transform.transforms:
             print(f" - {t}")
     else:
